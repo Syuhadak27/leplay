@@ -305,6 +305,12 @@ fun LePlayTubeApp() {
 
     val scrollToTop = remember { mutableStateMapOf<Tab, Int>() }
     val reduced = rememberReducedMotion() || GlassSettings.liteMode
+    // Note 56 (0.1.5): the player morph gets its own flag. Lite Mode is
+    // coupled to the non-liquid theme, so feeding the shared `reduced`
+    // into the morph made expand/minimize jump instantly for every
+    // black-theme user. The morph now honours only the system
+    // reduce-motion setting; Lite Mode still calms everything else.
+    val morphReduced = rememberReducedMotion()
     val morph = remember { PlayerMorph(scope) { expanded -> player.expanded = expanded } }
     var miniOffsetX by remember { mutableFloatStateOf(0f) }
     var miniOffsetY by remember { mutableFloatStateOf(0f) }
@@ -511,7 +517,7 @@ fun LePlayTubeApp() {
 
 
     LaunchedEffect(player.expanded, player.current?.id) {
-        if (player.current == null) morph.progress.snapTo(0f) else morph.animateTo(player.expanded, reduced)
+        if (player.current == null) morph.progress.snapTo(0f) else morph.animateTo(player.expanded, morphReduced)
     }
     val showPlayer by remember {
 
@@ -832,7 +838,7 @@ fun LePlayTubeApp() {
                                         scope.launch { dismiss.snapTo(0f) }
                                     }
                                 } else {
-                                    morph.settle(velocity, reduced)
+                                    morph.settle(velocity, morphReduced)
                                 }
                             },
                         ),
