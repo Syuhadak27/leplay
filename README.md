@@ -65,7 +65,7 @@ LePlay is an independent, open-source project and is **not affiliated with or en
 
 The release APK is written to `app/build/outputs/apk/release/app-release.apk`.
 
-Releases are automated on every push to `main`: the workflow bumps the patch version, builds the APK, pushes the matching `v*` tag, and publishes the APK as a GitHub Release. See [docs/RELEASING.md](docs/RELEASING.md) for the full push and release commands, manual triggers, and recovery steps.
+Rilis otomatis setiap push ke `main`: workflow menaikkan versi patch, build APK, push tag `v*`, dan publish APK sebagai GitHub Release. Lihat [docs/RELEASING.md](docs/RELEASING.md) untuk panduan lengkap berbahasa Indonesia, trigger manual, dan langkah recovery.
 
 ---
 

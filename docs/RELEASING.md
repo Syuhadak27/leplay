@@ -1,13 +1,13 @@
-# Pushing Code and Publishing Releases
+# Push Kode dan Publikasi Rilis
 
-LePlay uses GitHub Actions to build and publish APKs. The workflow lives in
+LePlay memakai GitHub Actions untuk build dan publish APK. Workflow-nya ada di
 [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-## Prerequisites
+## Prasyarat
 
-- Push access to <https://github.com/Syuhadak27/leplay>
-- Git, plus JDK 21 and the Android SDK for local builds (optional)
-- [GitHub CLI](https://cli.github.com/) (`gh`) for status and release commands (optional)
+- Punya akses push ke <https://github.com/Syuhadak27/leplay>
+- Git, plus JDK 21 dan Android SDK untuk build lokal (opsional)
+- [GitHub CLI](https://cli.github.com/) (`gh`) untuk cek status dan release (opsional)
 
 ```bash
 git clone git@github.com:Syuhadak27/leplay.git
@@ -16,150 +16,151 @@ git remote -v
 # origin  git@github.com:Syuhadak27/leplay.git
 ```
 
-Use the `main` branch for releases.
+Gunakan branch `main` untuk rilis.
 
 ---
 
-## Normal flow: push code, get a release
+## Alur normal: push kode, rilis otomatis
 
-1. Make and test your changes.
-2. Commit and push to `main`:
+1. Lakukan perubahan dan tes terlebih dahulu.
+2. Commit lalu push ke `main`:
 
 ```bash
 git add .
-git commit -m "feat: describe your change"
+git commit -m "feat: jelaskan perubahan kamu"
 git push origin main
 ```
 
-3. GitHub Actions runs automatically and:
+3. GitHub Actions akan berjalan otomatis dan:
 
-   - reads the current `versionName` from `app/build.gradle.kts`;
-   - bumps the patch version and increments `versionCode`;
-   - builds `:app:assembleRelease`;
-   - commits the version bump as `LePlay X.Y.Z [skip ci]`;
-   - creates and pushes the `vX.Y.Z` tag;
-   - publishes a GitHub Release containing `LePlay.apk`.
+   - membaca `versionName` saat ini dari `app/build.gradle.kts`;
+   - menaikkan versi patch dan menambah `versionCode`;
+   - build `:app:assembleRelease`;
+   - commit perubahan versi sebagai `LePlay X.Y.Z [skip ci]`;
+   - membuat dan push tag `vX.Y.Z`;
+   - publish GitHub Release berisi `LePlay.apk`.
 
-   Example: a push from `0.1.7` (`versionCode 144`) produces `0.1.8`
-   (`versionCode 145`), tag `v0.1.8`, and release `LePlay 0.1.8`.
+   Contoh: push dari `0.1.7` (`versionCode 144`) menghasilkan `0.1.8`
+   (`versionCode 145`), tag `v0.1.8`, dan release `LePlay 0.1.8`.
 
-4. Monitor the build:
+4. Pantau proses build:
 
 ```bash
 gh run list --repo Syuhadak27/leplay --workflow release.yml --limit 5
 gh run watch RUN_ID --repo Syuhadak27/leplay
 ```
 
-Or open <https://github.com/Syuhadak27/leplay/actions>.
+Atau buka <https://github.com/Syuhadak27/leplay/actions>.
 
-5. Check or download the release:
+5. Cek atau download release:
 
 ```bash
 gh release view --repo Syuhadak27/leplay
 
-# Download the APK from the latest release
+# Download APK dari release terbaru
 curl -L -o LePlay.apk \
   https://github.com/Syuhadak27/leplay/releases/latest/download/LePlay.apk
 ```
 
-You do not need to edit `versionCode` or `versionName` for a normal release.
-The workflow owns the version bump. Its bump commit contains `[skip ci]`, so it
-does not trigger a second release.
+Kamu tidak perlu mengubah `versionCode` atau `versionName` untuk rilis normal.
+Workflow yang mengurus kenaikan versi. Commit perubahan versi berisi `[skip ci]`,
+jadi tidak memicu rilis kedua.
 
 ---
 
-## Skip the release for docs-only changes
+## Lewati rilis untuk perubahan dokumentasi saja
 
-Add `[skip ci]` to the commit message when a push should not build a release:
+Tambahkan `[skip ci]` di pesan commit kalau push tersebut tidak perlu membuat
+release:
 
 ```bash
 git add README.md docs/
-git commit -m "docs: update release guide [skip ci]"
+git commit -m "docs: perbarui panduan rilis [skip ci]"
 git push origin main
 ```
 
-GitHub Actions will not run for that push.
+GitHub Actions tidak akan berjalan untuk push tersebut.
 
 ---
 
-## Manual trigger without a code change
+## Trigger manual tanpa perubahan kode
 
-Run the workflow from the current `main` and let it create the next patch
-release:
+Jalankan workflow dari `main` saat ini dan biarkan workflow membuat rilis patch
+berikutnya:
 
 ```bash
 gh workflow run release.yml --repo Syuhadak27/leplay
 gh run list --repo Syuhadak27/leplay --workflow release.yml --limit 5
 ```
 
-You can also use **Actions → Build & Release → Run workflow** on GitHub.
+Kamu juga bisa memakai **Actions → Build & Release → Run workflow** di GitHub.
 
 ---
 
-## Tag-based release (recovery or exact version)
+## Rilis berbasis tag (recovery atau versi tertentu)
 
-A tag push builds the version currently set in `app/build.gradle.kts` and
-publishes it under the tag name. Use this to recover when Actions stopped after
-pushing the version bump but before creating the release, or when the current
-`main` already contains the exact `versionName` you want.
+Push tag akan build versi yang sedang di-set di `app/build.gradle.kts` dan
+publish-nya dengan nama tag tersebut. Gunakan cara ini untuk recovery saat
+Actions berhenti setelah push perubahan versi tapi sebelum release dibuat, atau
+saat `main` sudah berisi `versionName` yang memang ingin dirilis.
 
 ```bash
 git checkout main
 git pull --ff-only origin main
 
-# Confirm the version matches the tag you are about to create.
+# Pastikan versi sama dengan tag yang akan dibuat.
 grep -nE 'versionCode|versionName' app/build.gradle.kts
-# Example: versionName = "0.1.8"
+# Contoh: versionName = "0.1.8"
 
 git tag -a v0.1.8 -m "LePlay 0.1.8"
 git push origin v0.1.8
 ```
 
-Then verify:
+Lalu verifikasi:
 
 ```bash
 gh run list --repo Syuhadak27/leplay --workflow release.yml --limit 5
 gh release view v0.1.8 --repo Syuhadak27/leplay
 ```
 
-Always create a tag from the commit whose `versionName` matches the tag, and
-never reuse a tag that already has a release.
+Selalu buat tag dari commit yang `versionName`-nya cocok dengan tag, dan jangan
+pakai ulang tag yang sudah punya release.
 
 ---
 
-## Local build (optional)
+## Build lokal (opsional)
 
 ```bash
 ./gradlew :app:assembleRelease
 ls -lh app/build/outputs/apk/release/app-release.apk
 ```
 
-The release build uses `app/release.keystore` when it exists. Keep the same
-keystore and the same `applicationId` (`com.leplay.syd`) so Android accepts
-future updates.
+Build release memakai `app/release.keystore` kalau file itu ada. Pertahankan
+keystore yang sama dan `applicationId` yang sama (`com.leplay.syd`) supaya
+Android menerima update berikutnya.
 
 ---
 
 ## Troubleshooting
 
-Show the failed steps of a run:
+Lihat langkah yang gagal pada sebuah run:
 
 ```bash
 gh run view RUN_ID --repo Syuhadak27/leplay --log-failed
 ```
 
-Re-run a failed workflow:
+Jalankan ulang workflow yang gagal:
 
 ```bash
 gh run rerun RUN_ID --repo Syuhadak27/leplay
 ```
 
-Delete and recreate a tag only if its release is broken and the tag has not been
-used for a working APK:
+Hapus dan buat ulang tag hanya kalau release-nya rusak dan tag tersebut belum
+dipakai untuk APK yang berfungsi:
 
 ```bash
 git tag -d v0.1.8
 git push origin :refs/tags/v0.1.8
 ```
 
-Then create and push it again from the correct commit.
+Lalu buat dan push lagi dari commit yang benar.
