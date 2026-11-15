@@ -350,11 +350,6 @@ class PlayerState(private val scope: CoroutineScope) {
 
     private var loadJob: Job? = null
 
-    /** Bumped by every show() so a details/metadata coroutine that was
-     *  started for the previous video can never publish its result, start
-     *  its playback, or set an error over the video the user just opened. */
-    private var loadGen = 0
-
     /** Id whose playback was already started from the stream resolve alone
      *  (0.1.2, note 53 item 1): playback no longer waits for the full
      *  details document, so the details completion must not start it twice
@@ -612,7 +607,6 @@ class PlayerState(private val scope: CoroutineScope) {
     private var openedAt = 0L
 
     private fun show(item: VideoItem, startPlayback: Boolean) {
-        val gen = ++loadGen
         endHoldSpeed()
         openedAt = android.os.SystemClock.elapsedRealtime()
         Log.i("LePlayTime", "open ${item.id}")
@@ -628,16 +622,6 @@ class PlayerState(private val scope: CoroutineScope) {
         currentShownAsMusic = isMusicMode
         playbackBegunFor = null
         current = item
-        // Stop the outgoing stream at once instead of leaving it playing
-        // (and downloading) while the new one resolves. The old media was
-        // still consuming the same connection, which made the first segment
-        // of the new video sit in the spinner. The surface is hidden until
-        // the new first frame, so the old frame cannot linger either.
-        if (startPlayback && outgoing?.id != item.id) controller?.stop()
-        positionMs = 0L
-        bufferedMs = 0L
-        durationMs = (item.durationSec * 1000L).coerceAtLeast(0L)
-        isBuffering = false
         portraitTall = false
         if (isMusicMode) {
             RecentMusic.record(item)
@@ -716,7 +700,7 @@ class PlayerState(private val scope: CoroutineScope) {
                 val resolved = withContext(Dispatchers.IO) {
                     runCatching { StreamCache.getOrLoad(item.id) }.isSuccess
                 }
-                if (gen == loadGen && resolved && current?.id == item.id && playbackBegunFor != item.id) {
+                if (resolved && current?.id == item.id && playbackBegunFor != item.id) {
                     playbackBegunFor = item.id
                     startPlayback(item)
                 }
@@ -726,7 +710,6 @@ class PlayerState(private val scope: CoroutineScope) {
         loadJob = scope.launch {
             runCatching { YouTube.details(item.id) }
                 .onSuccess { d ->
-                    if (gen != loadGen || current?.id != item.id) return@onSuccess
                     Log.i("LePlayTime", "details +${android.os.SystemClock.elapsedRealtime() - openedAt}ms")
                     details = d
                     // NewPipe's uploader subscriber count can arrive
@@ -759,26 +742,17 @@ class PlayerState(private val scope: CoroutineScope) {
                     displayRelated.forEach { relatedShownIds.add(it.id) }
                     relatedShownIds.add(item.id)
                     relatedContinuation = d.relatedNext
-                    // Pre-resolve a few likely next streams in the background
+                    // Pre-resolve the likely next streams in the background
                     // so switching tracks does not pay the full lookup cost.
-                    // The first related rows get priority because that is
-                    // what a viewer normally taps during a session.
                     val nextIds = if (isMusicMode) {
                         musicQueue.take(2).map { it.id }
                     } else {
-                        buildList {
-                            queue.firstOrNull()?.let { add(it.id) }
-                            pickDisplayedNext(displayRelated)?.let { add(it.id) }
-                            displayRelated.asSequence()
-                                .map { it.id }
-                                .filter { it != item.id }
-                                .take(2)
-                                .forEach { add(it) }
-                        }.distinct()
-                            .filter { it != item.id && StreamCache.get(it) == null }
-                            .take(2)
+                        listOfNotNull(
+                            queue.firstOrNull()?.id,
+                            pickDisplayedNext(displayRelated)?.id,
+                        )
                     }
-                    nextIds.forEach { id -> StreamCache.prefetch(id) }
+                    nextIds.distinct().forEach { id -> if (id != item.id) StreamCache.prefetch(id) }
                     refreshTracks()
 
                     if (!aspectFromFrames) d.aspect?.let { videoAspect = it }
@@ -799,10 +773,8 @@ class PlayerState(private val scope: CoroutineScope) {
                             details = details?.copy(dislikes = dislikes)
                         }
                     }
-                    loading = false
                 }
                 .onFailure {
-                    if (gen != loadGen || current?.id != item.id) return@onFailure
                     Log.w(TAG, "details failed for ${item.id}", it)
                     // When playback already began from the resolve alone, a
                     // metadata failure must not replace a playing video with
@@ -812,8 +784,8 @@ class PlayerState(private val scope: CoroutineScope) {
                     }
 
                     comments.load(item.id)
-                    loading = false
                 }
+            loading = false
         }
     }
 
@@ -861,23 +833,20 @@ class PlayerState(private val scope: CoroutineScope) {
 
 
     private fun replaceCurrent(player: MediaController, item: VideoItem, positionMs: Long) {
-        // Preserve the queue behind the playing item, but replace both the
-        // item and its start position in one player command. The old
-        // add/seek/remove sequence could be applied out of order while the
-        // session resolved the new stream, leaving the player on the old
-        // item or restarting the new one from zero. One setMediaItems()
-        // command has no such window.
-        val index = player.currentMediaItemIndex
-        val tail = if (index >= 0) {
-            (index + 1 until player.mediaItemCount).map { player.getMediaItemAt(it) }
+        if (player.mediaItemCount == 0) {
+            player.setMediaItem(mediaItemFor(item), positionMs)
         } else {
-            emptyList()
-        }
-        swapping = true
-        try {
-            player.setMediaItems(listOf(mediaItemFor(item)) + tail, 0, positionMs)
-        } finally {
-            swapping = false
+
+
+            swapping = true
+            try {
+                val index = player.currentMediaItemIndex
+                player.addMediaItem(index + 1, mediaItemFor(item))
+                player.seekTo(index + 1, positionMs)
+                player.removeMediaItem(index)
+            } finally {
+                swapping = false
+            }
         }
         player.prepare()
     }
@@ -895,7 +864,8 @@ class PlayerState(private val scope: CoroutineScope) {
 
     private fun continueIfEnded(player: MediaController) {
         if (player.playbackState == Player.STATE_ENDED && player.currentMediaItemIndex + 1 < player.mediaItemCount) {
-            playFromQueue(0)
+            player.seekTo(player.currentMediaItemIndex + 1, 0L)
+            player.play()
         }
     }
 
@@ -911,15 +881,7 @@ class PlayerState(private val scope: CoroutineScope) {
 
     fun playFromQueue(index: Int) {
         val player = controller ?: return
-        val target = player.currentMediaItemIndex + 1 + index
-        if (target !in 0 until player.mediaItemCount) return
-        // Update the UI before the seek, not from the media transition:
-        // the transition can wait for the new source to prepare, which is
-        // exactly the long-buffering window where the old title/thumbnail
-        // used to stay on screen.
-        val item = itemFor(player.getMediaItemAt(target))
-        show(item, startPlayback = false)
-        player.seekTo(target, 0L)
+        player.seekTo(player.currentMediaItemIndex + 1 + index, 0L)
         player.play()
     }
 
@@ -1048,7 +1010,6 @@ class PlayerState(private val scope: CoroutineScope) {
     private fun autoPlayNext() {
         val curr = current ?: return
         val currId = curr.id
-        val gen = loadGen
 
         if (isMusicMode) {
             autoPlayNextMusic()
@@ -1062,7 +1023,6 @@ class PlayerState(private val scope: CoroutineScope) {
             scope.launch {
                 runCatching { YouTube.details(currId) }
                     .onSuccess { d ->
-                        if (gen != loadGen || current?.id != currId) return@onSuccess
                         val disp = interleaveFeed(diversifyRelated(d.related, curr), curr)
                         val rel = pickDisplayedNext(disp)
                         if (rel != null) {
@@ -1637,11 +1597,6 @@ class PlayerState(private val scope: CoroutineScope) {
         pendingStart?.let { pendingStart = null; startPlayback(it); return }
         val player = controller ?: return
         rebuildQueue()
-        // The controller can reconnect to a session whose first frame was
-        // rendered before this UI existed. There is no replay of
-        // onRenderedFirstFrame, so without this the surface would stay
-        // hidden behind the thumbnail forever.
-        if (player.playbackState == Player.STATE_READY) firstFrameRendered = true
         val playing = player.currentMediaItem ?: return
         if (current != null || playing.mediaId.isBlank()) return
         val meta = playing.mediaMetadata
@@ -1657,14 +1612,8 @@ class PlayerState(private val scope: CoroutineScope) {
             uploaded = null,
         )
         current = item
-        val gen = ++loadGen
         loadJob = scope.launch {
-            runCatching { YouTube.details(item.id) }.onSuccess {
-                if (gen != loadGen || current?.id != item.id) return@onSuccess
-                details = it
-                current = it.item
-                refreshTracks()
-            }
+            runCatching { YouTube.details(item.id) }.onSuccess { details = it; current = it.item; refreshTracks() }
         }
     }
 
@@ -1703,7 +1652,8 @@ class PlayerState(private val scope: CoroutineScope) {
                 val p = controller ?: return
                 if (p.repeatMode == Player.REPEAT_MODE_ONE) return
                 if (p.currentMediaItemIndex + 1 < p.mediaItemCount) {
-                    playFromQueue(0)
+                    p.seekTo(p.currentMediaItemIndex + 1, 0L)
+                    p.play()
                 } else if (autoPlayEnabled) {
                     autoPlayNext()
                 }
@@ -1747,17 +1697,11 @@ class PlayerState(private val scope: CoroutineScope) {
         }
 
         override fun onRenderedFirstFrame() {
-            // A frame from the outgoing stream must not make the surface
-            // visible over the new video's thumbnail.
-            if (controller?.currentMediaItem?.mediaId != current?.id) return
             Log.i("LePlayTime", "first frame +${android.os.SystemClock.elapsedRealtime() - openedAt}ms")
             firstFrameRendered = true
         }
 
         override fun onPlayerError(e: PlaybackException) {
-            // Ignore a late error from the outgoing media item; it must not
-            // put an error panel over the video the user just opened.
-            if (controller?.currentMediaItem?.mediaId != current?.id) return
             val status = (e.cause as? androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException)?.responseCode
             Log.w(TAG, "playback error ${e.errorCodeName}${status?.let { " (HTTP $it)" } ?: ""} for ${current?.id}", e)
 

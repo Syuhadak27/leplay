@@ -41,7 +41,6 @@ import androidx.media3.exoplayer.source.SingleSampleMediaSource
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import org.schabi.newpipe.extractor.services.youtube.dashmanifestcreators.YoutubeProgressiveDashManifestCreator
@@ -197,66 +196,39 @@ class PlaybackService : MediaSessionService() {
 
 
 
-    /** Builds the playable media item from state that is already cached.
-     *  Returning null means the stream still has to be extracted. */
-    private fun cachedMediaItem(item: MediaItem): MediaItem? {
-        val local = item.requestMetadata.mediaUri?.takeIf { it.scheme == "file" }
-            ?: item.mediaMetadata.extras?.getString("local_uri")?.let(Uri::parse)
-        if (local != null) {
-            return item.buildUpon()
-                .setUri(local)
-                .setMediaMetadata(
-                    item.mediaMetadata.buildUpon()
-                        .setMediaType(MediaMetadata.MEDIA_TYPE_VIDEO)
-                        .build(),
-                )
-                .build()
-        }
-        val info = StreamCache.get(item.mediaId) ?: return null
-        return item.buildUpon()
-            .setUri(YouTube.watchUrl(item.mediaId))
-            .setMediaMetadata(
-                item.mediaMetadata.buildUpon()
-                    .setTitle(item.mediaMetadata.title ?: info.name)
-                    .setArtist(item.mediaMetadata.artist ?: info.uploaderName)
-                    .setMediaType(MediaMetadata.MEDIA_TYPE_VIDEO)
-                    .build(),
-            )
-            .build()
-    }
-
-    private fun resolveMediaItem(item: MediaItem): MediaItem {
-        cachedMediaItem(item)?.let { return it }
-        val info = StreamCache.getOrLoad(item.mediaId)
-        return item.buildUpon()
-            .setUri(YouTube.watchUrl(item.mediaId))
-            .setMediaMetadata(
-                item.mediaMetadata.buildUpon()
-                    .setTitle(item.mediaMetadata.title ?: info.name)
-                    .setArtist(item.mediaMetadata.artist ?: info.uploaderName)
-                    .setMediaType(MediaMetadata.MEDIA_TYPE_VIDEO)
-                    .build(),
-            )
-            .build()
-    }
-
     private inner class SessionCallback : MediaSession.Callback {
         override fun onAddMediaItems(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> {
-            // PlayerState resolves the stream before asking for playback.
-            // Answering from the cache synchronously closes the window in
-            // which a replace/seek command could reach the service before
-            // the new media item existed.
-            val ready = mediaItems.map(::cachedMediaItem)
-            if (ready.none { it == null }) {
-                return Futures.immediateFuture(ready.map { requireNotNull(it) }.toMutableList())
-            }
-            return resolver.submit<MutableList<MediaItem>> {
-                mediaItems.map(::resolveMediaItem).toMutableList()
-            }
+        ): ListenableFuture<MutableList<MediaItem>> = resolver.submit<MutableList<MediaItem>> {
+            mediaItems.map { item ->
+                val local = item.requestMetadata.mediaUri?.takeIf { it.scheme == "file" }
+                    ?: item.mediaMetadata.extras?.getString("local_uri")?.let(Uri::parse)
+                if (local != null) {
+
+                    item.buildUpon()
+                        .setUri(local)
+                        .setMediaMetadata(
+                            item.mediaMetadata.buildUpon()
+                                .setMediaType(MediaMetadata.MEDIA_TYPE_VIDEO)
+                                .build(),
+                        )
+                        .build()
+                } else {
+                    val info = StreamCache.getOrLoad(item.mediaId)
+                    item.buildUpon()
+                        .setUri(YouTube.watchUrl(item.mediaId))
+                        .setMediaMetadata(
+                            item.mediaMetadata.buildUpon()
+                                .setTitle(item.mediaMetadata.title ?: info.name)
+                                .setArtist(item.mediaMetadata.artist ?: info.uploaderName)
+                                .setMediaType(MediaMetadata.MEDIA_TYPE_VIDEO)
+                                .build(),
+                        )
+                        .build()
+                }
+            }.toMutableList()
         }
     }
 }

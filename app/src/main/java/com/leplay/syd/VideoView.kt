@@ -596,11 +596,7 @@ fun VideoContent(
                     Modifier.fillMaxSize().graphicsLayer { alpha = if (scrubbing) 0f else 1f },
                     radius = 0,
                 )
-                LocalVideoSurface.current(
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = if (state.firstFrameRendered) 1f else 0f },
-                )
+                LocalVideoSurface.current(Modifier.fillMaxSize())
                 if (scrubbing && scrubPreviewMs != null) {
                     ScrubVideoPreview(
                         state.current?.id,
