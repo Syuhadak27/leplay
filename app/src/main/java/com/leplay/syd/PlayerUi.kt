@@ -981,7 +981,12 @@ fun LiquidMiniPlayer(
                         Thumbnail(item.thumbnail, Modifier.fillMaxSize(), radius = 0)
                         if (!AudioOnly.enabled) {
                             Box(Modifier.fillMaxSize().aspectFit(state.stageAspect, cover = true)) {
-                                LocalVideoSurface.current(Modifier.fillMaxSize().aspectFit(state.videoAspect))
+                                LocalVideoSurface.current(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .aspectFit(state.videoAspect)
+                                        .graphicsLayer { alpha = if (state.firstFrameRendered) 1f else 0f },
+                                )
                             }
                         }
                     }
@@ -1064,7 +1069,12 @@ fun MiniPlayer(
         if (showVideo && !AudioOnly.enabled) {
             Thumbnail(item.thumbnail, Modifier.fillMaxSize(), radius = 0)
             Box(Modifier.fillMaxSize().aspectFit(state.stageAspect, cover = true)) {
-                LocalVideoSurface.current(Modifier.fillMaxSize().aspectFit(state.videoAspect))
+                LocalVideoSurface.current(
+                    Modifier
+                        .fillMaxSize()
+                        .aspectFit(state.videoAspect)
+                        .graphicsLayer { alpha = if (state.firstFrameRendered) 1f else 0f },
+                )
             }
         } else {
             Box(
