@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.leplay.app"
+    namespace = "com.leplay.syd"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.leplay.app"
+        applicationId = "com.leplay.syd"
         minSdk = 24
         targetSdk = 36
-        versionCode = 142
-        versionName = "0.1.5"
+        versionCode = 143
+        versionName = "0.1.6"
     }
 
     signingConfigs {

@@ -8,15 +8,21 @@
 
 **A lightweight YouTube and YouTube Music client with a modern Liquid Glass UI, ad-free playback, synced lyrics, and high-quality downloads for Android phones, tablets, and TV.**
 
-[![Version](https://img.shields.io/github/v/release/cnyel9/leplay?style=flat-square&logo=android&logoColor=white&label=Version&color=E50914)](https://github.com/cnyel9/leplay/releases/latest)
-[![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/cnyel9/leplay/releases/latest)
+[![Version](https://img.shields.io/github/v/release/Syuhadak27/leplay?style=flat-square&logo=android&logoColor=white&label=Version&color=E50914)](https://github.com/Syuhadak27/leplay/releases/latest)
+[![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/Syuhadak27/leplay/releases/latest)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE)
 
 <br/>
 
-[**Download Latest APK**](https://github.com/cnyel9/leplay/releases/latest)
+[**Download Latest APK**](https://github.com/Syuhadak27/leplay/releases/latest)
+
+> **LePlay 0.1.6** · package `com.leplay.syd` · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
 
 </div>
+
+---
+
+> **This build** is maintained at [Syuhadak27/leplay](https://github.com/Syuhadak27/leplay). Its in-app updater checks that repository's GitHub Releases, and the application id is `com.leplay.syd` so it can be installed alongside the original LePlay.
 
 ---
 
@@ -27,6 +33,7 @@
 - **2 Mini Player Styles** - Modern YouTube-style floating draggable miniplayer and classic Liquid Glass dock
 - **Ad-Free Playback** - Ad-free YouTube and YouTube Music playback
 - **Personalised Shorts** - Endless Shorts feed with a one-tap fresh batch and loading animation
+- **YouTube History Shelf** - Sign in with Google and your account's YouTube watch history appears on Home and in the Library, just like the real app
 - **Synced Lyrics** - Synced lyrics with an Apple Music-style animated lyric view
 - **High-Quality Downloads** - High-speed video and audio downloads up to 4K / HDR
 - **4K HDR Playback** - 4K HDR playback and customizable fixed resolution quality lock
@@ -38,9 +45,9 @@
 
 ## Download
 
-[**Download Latest APK (v0.0.6-test1)**](https://github.com/cnyel9/leplay/releases/latest)
+[**Download Latest APK (v0.1.6)**](https://github.com/Syuhadak27/leplay/releases/latest)
 
-> **Version 0.0.6-test1** · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
+> **Version 0.1.6** · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
 
 ---
 
