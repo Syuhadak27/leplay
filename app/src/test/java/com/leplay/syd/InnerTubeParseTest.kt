@@ -138,4 +138,14 @@ class InnerTubeParseTest {
         )
         assertEquals(true, meta?.verified)
     }
+
+    @Test fun searchHistoryRows() {
+        val root = JSONObject(
+            """{"contents":{"twoColumnBrowseResultsRenderer":{"tabs":[{"tabRenderer":{"content":{"sectionListRenderer":{"contents":[{"itemSectionRenderer":{"contents":[{"searchHistoryQueryRenderer":{"query":"kotlin coroutines","navigationEndpoint":{"searchEndpoint":{"query":"kotlin coroutines"}}}},{"searchHistoryQueryRenderer":{"displayQuery":"android compose"}},{"searchHistoryQueryViewModel":{"queryText":"youtube history"}}]}}]}}}}]}}}""",
+        )
+        assertEquals(
+            listOf("kotlin coroutines", "android compose", "youtube history"),
+            InnerTube.parseSearchHistory(root),
+        )
+    }
 }

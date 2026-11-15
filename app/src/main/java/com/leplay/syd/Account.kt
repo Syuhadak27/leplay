@@ -2242,6 +2242,44 @@ object InnerTube {
     private const val CHANNEL_COMMUNITY_TAB = "Egljb21tdW5pdHnyBgQKAkoA"
     suspend fun subscriptionsFeed(next: String? = null) = browse("FEsubscriptions", next)
     suspend fun history(next: String? = null) = browse("FEhistory", next)
+
+    /**
+     * Search queries from the signed-in account's YouTube history page.
+     * YouTube keeps search history in the same FEhistory feed as watch
+     * history, but as searchHistoryQueryRenderer rows instead of videos,
+     * so the normal feed parser drops them. Empty when signed out.
+     */
+    suspend fun searchHistory(): List<String> = withContext(Dispatchers.IO) {
+        if (!Account.signedIn) return@withContext emptyList()
+        val root = runCatching {
+            post("browse", JSONObject().put("browseId", "FEhistory"))
+        }.getOrNull() ?: return@withContext emptyList()
+        parseSearchHistory(root)
+    }
+
+    internal fun parseSearchHistory(root: JSONObject): List<String> {
+        val out = LinkedHashSet<String>()
+        root.walk { key, obj ->
+            if (!key.contains("searchHistory", ignoreCase = true)) return@walk
+            if (!key.contains("Query", ignoreCase = true)) return@walk
+            val candidates = buildList {
+                add(obj.optString("query"))
+                add(obj.optString("displayQuery"))
+                add(obj.optString("queryText"))
+                add(obj.optString("searchQuery"))
+                addAll(obj.collectStrings("query"))
+                addAll(obj.collectStrings("displayQuery"))
+                addAll(obj.collectStrings("queryText"))
+                addAll(obj.collectStrings("searchQuery"))
+                // Unknown leaf shape: the visible row text is still the query.
+                addAll(obj.collectStrings("text"))
+            }
+            val query = candidates.map { it.trim() }.firstOrNull { it.isNotEmpty() }
+            if (query != null) out += query
+        }
+        return out.take(30)
+    }
+
     suspend fun playlist(id: String, next: String? = null) = browse("VL$id", next)
 
     /** Harvest of one watch-next / search harvest pass: video renderers

@@ -1355,6 +1355,10 @@ fun SearchScreen(
     val context = LocalContext.current
 
     LaunchedEffect(Unit) { SearchHistory.init(context) }
+    LaunchedEffect(Account.activeAccountId) {
+        SearchHistory.useAccount(Account.activeAccountId)
+        SearchHistory.syncFromAccount()
+    }
     fun showSearchKeyboard() {
         scope.launch {
             delay(80)
@@ -1551,14 +1555,29 @@ fun SearchScreen(
                                     .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    I18n.t("recent_searches", "Recent searches"),
-                                    fontFamily = RoundedHeavy,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = c.onSurface,
+                                Column(
                                     modifier = Modifier.weight(1f),
-                                )
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Text(
+                                        I18n.t("recent_searches", "Recent searches"),
+                                        fontFamily = RoundedHeavy,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = c.onSurface,
+                                    )
+                                    if (Account.signedIn && (SearchHistory.syncing || SearchHistory.accountSynced)) {
+                                        Text(
+                                            if (SearchHistory.syncing) I18n.t("syncing", "Syncing…")
+                                            else I18n.t("synced_with_account", "Synced with your account"),
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = c.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
                                 Box(
                                     modifier = Modifier
                                         .pressable { SearchHistory.clear() }
