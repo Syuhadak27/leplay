@@ -16,7 +16,7 @@
 
 [**Download Latest APK**](https://github.com/Syuhadak27/leplay/releases/latest)
 
-> **LePlay 0.1.6** · package `com.leplay.syd` · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
+> **LePlay 0.1.7** · package `com.leplay.syd` · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
 
 </div>
 
@@ -45,9 +45,9 @@
 
 ## Download
 
-[**Download Latest APK (v0.1.6)**](https://github.com/Syuhadak27/leplay/releases/latest)
+[**Download Latest APK (v0.1.7)**](https://github.com/Syuhadak27/leplay/releases/latest)
 
-> **Version 0.1.6** · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
+> **Version 0.1.7** · Android 7.0+ · One universal APK for phones, tablets, and Android TV.
 
 ---
 
@@ -64,6 +64,8 @@ LePlay is an independent, open-source project and is **not affiliated with or en
 ```
 
 The release APK is written to `app/build/outputs/apk/release/app-release.apk`.
+
+Releases are automated: every push to `main` bumps the patch version, builds the APK on GitHub Actions, pushes the matching `v*` tag, and publishes the APK as a GitHub Release. Pushing a `v*` tag manually releases that exact version.
 
 ---
 

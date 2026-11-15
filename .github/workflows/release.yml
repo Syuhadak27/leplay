@@ -2,6 +2,8 @@ name: Build & Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -9,12 +11,19 @@ on:
 permissions:
   contents: write
 
+# Serialize releases so two quick pushes cannot publish the same tag twice.
+concurrency:
+  group: leplay-release
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -23,12 +32,50 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: actions/setup-gradle@v4
         with:
           validate-wrappers: false
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
+
+      - name: Determine release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            # A tag was pushed explicitly: release exactly that version.
+            VERSION="${GITHUB_REF_NAME#v}"
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          else
+            # A normal push to main: bump the patch version automatically.
+            CURRENT="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' app/build.gradle.kts | head -n1)"
+            BASE="${CURRENT%%-*}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+            MAJOR="${MAJOR:-0}"
+            MINOR="${MINOR:-1}"
+            PATCH="${PATCH:-0}"
+            VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing LePlay v$VERSION"
+
+      - name: Bump version for this build
+        if: steps.version.outputs.bump == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          CODE="$(sed -nE 's/^[[:space:]]*versionCode = ([0-9]+).*/\1/p' app/build.gradle.kts | head -n1)"
+          CODE="${CODE:-0}"
+          sed -i -E "s/(versionCode = )[0-9]+/\1$((CODE + 1))/" app/build.gradle.kts
+          sed -i -E "s/(versionName = \")[^\"]+(\")/\1${VERSION}\2/" app/build.gradle.kts
+          echo "Build version:"
+          grep -nE 'versionCode|versionName' app/build.gradle.kts
 
       - name: Build Release APK
         run: ./gradlew :app:assembleRelease --stacktrace
@@ -39,27 +86,41 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LePlay
+          name: LePlay-${{ steps.version.outputs.version }}
           path: LePlay.apk
 
-      - name: Set Release Title
-        id: release_title
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "title=LePlay ${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+      - name: Commit version bump and push tag
+        if: steps.version.outputs.bump == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle.kts
+          git commit -m "LePlay ${VERSION} [skip ci]"
+          git tag -a "$TAG" -m "LePlay ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "$TAG"
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.release_title.outputs.title }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: LePlay ${{ steps.version.outputs.version }}
           files: LePlay.apk
           body: |
-            LePlay release.
+            LePlay ${{ steps.version.outputs.version }}
 
+            - YouTube history from your signed-in Google account on Home and in the Library
             - Ad-free YouTube and YouTube Music playback with a Liquid Glass UI
             - Personalised Shorts feed and synced lyrics
             - High-quality downloads up to 4K HDR
             - Background playback, Picture-in-Picture, and Android TV mode
+
+            Package: `com.leplay.syd` · Source: https://github.com/Syuhadak27/leplay
           draft: false
           prerelease: false
         env:
