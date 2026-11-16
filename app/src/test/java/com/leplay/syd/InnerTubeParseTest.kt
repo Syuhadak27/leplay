@@ -141,11 +141,25 @@ class InnerTubeParseTest {
 
     @Test fun searchHistoryRows() {
         val root = JSONObject(
-            """{"contents":{"twoColumnBrowseResultsRenderer":{"tabs":[{"tabRenderer":{"content":{"sectionListRenderer":{"contents":[{"itemSectionRenderer":{"contents":[{"searchHistoryQueryRenderer":{"query":"kotlin coroutines","navigationEndpoint":{"searchEndpoint":{"query":"kotlin coroutines"}}}},{"searchHistoryQueryRenderer":{"displayQuery":"android compose"}},{"searchHistoryQueryViewModel":{"queryText":"youtube history"}}]}}]}}}}]}}}""",
+            """{"contents":{"twoColumnBrowseResultsRenderer":{"tabs":[{"tabRenderer":{"content":{"sectionListRenderer":{"contents":[{"itemSectionRenderer":{"contents":[{"searchHistoryQueryRenderer":{"query":"kotlin coroutines","navigationEndpoint":{"searchEndpoint":{"query":"kotlin coroutines"}}}},{"searchHistoryQueryRenderer":{"displayQuery":"android compose"}},{"searchHistoryQueryViewModel":{"queryText":"youtube history"}},{"historySuggestionRenderer":{"suggestion":{"runs":[{"text":"compose recomposition"}]}}}]}}]}}}}]}}}""",
         )
         assertEquals(
-            listOf("kotlin coroutines", "android compose", "youtube history"),
+            listOf("kotlin coroutines", "android compose", "youtube history", "compose recomposition"),
             InnerTube.parseSearchHistory(root),
+        )
+    }
+
+    @Test fun accountSuggestionRows() {
+        val raw =
+            """window.google.ac.h(["and",[["android",0,[512]],["android notification sounds",0,[512,433]],["romantic dinner",33,[512]],["old search",0,[907]]],{"j":"0","k":1}])"""
+        assertEquals(
+            listOf(
+                SuggestItem("android", false),
+                SuggestItem("android notification sounds", false),
+                SuggestItem("romantic dinner", true),
+                SuggestItem("old search", true),
+            ),
+            InnerTube.parseSuggestions(raw),
         )
     }
 }

@@ -17,7 +17,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URLDecoder
+import java.net.URLEncoder
 import java.security.MessageDigest
+import java.util.Locale
 import kotlin.random.Random
 
 @Immutable
@@ -156,6 +158,13 @@ enum class LikeStatus { Like, Dislike, None }
 data class VideoAccountState(val like: LikeStatus, val subscribed: Boolean?, val channelId: String?)
 
 class NotSignedInException : IOException("Not signed in")
+
+/**
+ * One row from YouTube's search-box completion endpoint. [history] marks
+ * entries that YouTube rendered from the signed-in account's search history
+ * (type 33 / subtype 907) rather than ordinary query completions.
+ */
+data class SuggestItem(val text: String, val history: Boolean = false)
 
 
 
@@ -2246,31 +2255,33 @@ object InnerTube {
     /**
      * Search queries from the signed-in account's YouTube history page.
      * YouTube keeps search history in the same FEhistory feed as watch
-     * history, but as searchHistoryQueryRenderer rows instead of videos,
-     * so the normal feed parser drops them. Empty when signed out.
+     * history, but as search-history/history-suggestion rows instead of
+     * videos, so the normal feed parser drops them. Empty when signed out.
      */
     suspend fun searchHistory(): List<String> = withContext(Dispatchers.IO) {
         if (!Account.signedIn) return@withContext emptyList()
-        val root = runCatching {
-            post("browse", JSONObject().put("browseId", "FEhistory"))
-        }.getOrNull() ?: return@withContext emptyList()
-        parseSearchHistory(root)
+        parseSearchHistory(post("browse", JSONObject().put("browseId", "FEhistory")))
     }
 
     internal fun parseSearchHistory(root: JSONObject): List<String> {
         val out = LinkedHashSet<String>()
         root.walk { key, obj ->
-            if (!key.contains("searchHistory", ignoreCase = true)) return@walk
-            if (!key.contains("Query", ignoreCase = true)) return@walk
+            // Current web uses historySuggestionRenderer for the search
+            // history rows. Older/mobile responses use searchHistoryQuery*.
+            val isHistoryRow = key.contains("searchHistory", ignoreCase = true) ||
+                key.contains("historySuggestion", ignoreCase = true)
+            if (!isHistoryRow) return@walk
             val candidates = buildList {
                 add(obj.optString("query"))
                 add(obj.optString("displayQuery"))
                 add(obj.optString("queryText"))
                 add(obj.optString("searchQuery"))
+                obj.text("suggestion")?.let { add(it) }
                 addAll(obj.collectStrings("query"))
                 addAll(obj.collectStrings("displayQuery"))
                 addAll(obj.collectStrings("queryText"))
                 addAll(obj.collectStrings("searchQuery"))
+                addAll(obj.collectStrings("suggestion"))
                 // Unknown leaf shape: the visible row text is still the query.
                 addAll(obj.collectStrings("text"))
             }
@@ -2278,6 +2289,78 @@ object InnerTube {
             if (query != null) out += query
         }
         return out.take(30)
+    }
+
+    private const val SUGGEST_URL = "https://suggestqueries-clients6.youtube.com/complete/search"
+    private const val SUGGEST_EXP =
+        "ytzpb5_e2,ytpo.bo.lqp.elu=1,ytpo.bo.lqp.ecsc=1,ytpo.bo.lqp.mcsc=3," +
+            "ytpo.bo.lqp.mec=1,ytpo.bo.lqp.rw=0.8,ytpo.bo.lqp.fw=0.2,ytpo.bo.lqp.szp=1," +
+            "ytpo.bo.lqp.mz=3,ytpo.bo.lqp.al=en_us,ytpo.bo.lqp.zrm=1,ytpo.bo.lqp.er=1," +
+            "ytpo.bo.ro.erl=1,ytpo.bo.ro.mlus=3,ytpo.bo.ro.erls=3,ytpo.bo.qfo.mlus=3," +
+            "ytzprp.ppp.e=1,ytzprp.ppp.st=772,ytzprp.ppp.p=5"
+
+    /**
+     * YouTube's own search-box completion endpoint, with the same parameters
+     * the web client sends. NewPipe's extractor uses an old, minimal URL and
+     * therefore cannot see the signed-in account's history entries. A blank
+     * query is a zero-prefix request and normally returns the account's recent
+     * searches for a signed-in session.
+     */
+    suspend fun searchSuggestions(query: String): List<SuggestItem> = withContext(Dispatchers.IO) {
+        val q = query.trim()
+        val lang = LanguageSettings.effectiveLanguageCode()
+        val country = LanguageSettings.effectiveCountryCode()
+        val url = buildString {
+            append(SUGGEST_URL)
+            append("?ds=yt")
+            append("&hl=").append(URLEncoder.encode(lang, "UTF-8"))
+            append("&gl=").append(URLEncoder.encode(country, "UTF-8"))
+            append("&client=youtube&gs_ri=youtube&gs_id=0&cp=").append(q.length)
+            append("&sugexp=").append(URLEncoder.encode(SUGGEST_EXP, "UTF-8"))
+            append("&h=180&w=320&ytvs=1")
+            append("&q=").append(URLEncoder.encode(q, "UTF-8"))
+            if (Account.signedIn) append("&authuser=0")
+        }
+        val prefCookie = "PREF=hl=$lang&gl=$country"
+        val cookieVal = if (Account.signedIn) "${Account.cookieHeader()}; $prefCookie" else prefCookie
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", Net.USER_AGENT)
+            .header("Accept-Language", "$lang-$country,$lang;q=0.9,en-US;q=0.8,en;q=0.7")
+            .header("Cookie", cookieVal)
+            .header("Origin", Account.ORIGIN)
+            .header("Referer", Account.ORIGIN + "/")
+            .apply {
+                if (Account.signedIn) header("X-Goog-AuthUser", "0")
+                Account.visitorData()?.let { header("X-Goog-Visitor-Id", it) }
+            }
+            .build()
+        Net.apiClient.newCall(request).execute().use { r ->
+            if (Account.signedIn) Account.absorbSetCookies(r.headers("Set-Cookie"))
+            val text = r.body?.string().orEmpty()
+            if (!r.isSuccessful) throw IOException("YouTube suggestions returned ${r.code}")
+            parseSuggestions(text)
+        }
+    }
+
+    internal fun parseSuggestions(raw: String): List<SuggestItem> {
+        val start = raw.indexOf('[')
+        val end = raw.lastIndexOf(']')
+        if (start < 0 || end <= start) return emptyList()
+        val arr = runCatching { JSONArray(raw.substring(start, end + 1)) }.getOrNull() ?: return emptyList()
+        val rows = arr.optJSONArray(1) ?: return emptyList()
+        val out = LinkedHashMap<String, SuggestItem>()
+        for (i in 0 until rows.length()) {
+            val row = rows.optJSONArray(i) ?: continue
+            val text = row.optString(0).trim()
+            if (text.isEmpty()) continue
+            val type = row.optInt(1, 0)
+            val subtypes = row.optJSONArray(2)
+            val history = type == 33 ||
+                (subtypes != null && (0 until subtypes.length()).any { subtypes.optInt(it) == 907 })
+            out.putIfAbsent(text.lowercase(Locale.ROOT), SuggestItem(text, history))
+        }
+        return out.values.toList()
     }
 
     suspend fun playlist(id: String, next: String? = null) = browse("VL$id", next)

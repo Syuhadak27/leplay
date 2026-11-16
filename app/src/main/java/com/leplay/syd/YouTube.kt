@@ -249,7 +249,12 @@ object YouTube {
 
     suspend fun searchSuggestions(query: String): List<String> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (q.isEmpty()) emptyList()
+        if (q.isEmpty()) return@withContext emptyList()
+        // Use YouTube's real search-box endpoint so the signed-in account's
+        // history/personalized completions are included. NewPipe's extractor
+        // sends an older minimal request that misses those entries.
+        val accountAware = runCatching { InnerTube.searchSuggestions(q) }.getOrDefault(emptyList())
+        if (accountAware.isNotEmpty()) accountAware.map { it.text }
         else service.suggestionExtractor.suggestionList(q)
     }
 

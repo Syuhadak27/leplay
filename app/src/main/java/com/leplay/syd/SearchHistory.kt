@@ -115,10 +115,20 @@ object SearchHistory {
         if (syncing) return
         syncing = true
         try {
-            val remote = runCatching { InnerTube.searchHistory() }.getOrNull()
-            // Ignore a response that arrives after an account switch.
-            if (remote != null && Account.activeAccountId == account) {
-                remoteQueries = remote
+            // The history feed and the search box's zero-prefix suggestions
+            // expose different slices of the same account data. Merge both:
+            // the feed is more complete, while the zero-prefix completion is
+            // what YouTube itself shows as "recent searches" in the search box.
+            val feed = runCatching { InnerTube.searchHistory() }.getOrNull()
+            val recent = runCatching {
+                InnerTube.searchSuggestions("")
+                    .filter { it.history }
+                    .map { it.text }
+            }.getOrNull()
+            // Ignore a response that arrives after an account switch. If both
+            // requests fail, keep the previous list instead of wiping it.
+            if (Account.activeAccountId == account && (feed != null || recent != null)) {
+                remoteQueries = (recent.orEmpty() + feed.orEmpty())
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
                     .distinctBy { it.lowercase(Locale.ROOT) }
