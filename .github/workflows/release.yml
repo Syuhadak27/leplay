@@ -89,26 +89,27 @@ jobs:
           name: LePlay-${{ steps.version.outputs.version }}
           path: LePlay.apk
 
-      - name: Commit version bump and push tag
+      - name: Commit version bump
         if: steps.version.outputs.bump == 'true'
         shell: bash
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/build.gradle.kts
           git commit -m "LePlay ${VERSION} [skip ci]"
-          git tag -a "$TAG" -m "LePlay ${VERSION}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
-          git push origin "$TAG"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # The release action creates the tag through the GitHub API. This
+          # avoids a separate `git push` of the annotated tag, which can be
+          # rejected by tag protection even when contents: write is granted.
           tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: main
           name: LePlay ${{ steps.version.outputs.version }}
           files: LePlay.apk
           body: |

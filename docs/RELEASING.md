@@ -37,7 +37,7 @@ git push origin main
    - menaikkan versi patch dan menambah `versionCode`;
    - build `:app:assembleRelease`;
    - commit perubahan versi sebagai `LePlay X.Y.Z [skip ci]`;
-   - membuat dan push tag `vX.Y.Z`;
+   - membuat tag `vX.Y.Z` lewat GitHub Release API;
    - publish GitHub Release berisi `LePlay.apk`.
 
    Contoh: push dari `0.1.7` (`versionCode 144`) menghasilkan `0.1.8`
@@ -125,6 +125,10 @@ gh release view v0.1.8 --repo Syuhadak27/leplay
 
 Selalu buat tag dari commit yang `versionName`-nya cocok dengan tag, dan jangan
 pakai ulang tag yang sudah punya release.
+
+Workflow normal tidak melakukan `git push` tag secara terpisah. Tag dibuat oleh
+langkah GitHub Release, sehingga aturan proteksi tag pada push Git tidak
+menghalangi rilis otomatis.
 
 ---
 
