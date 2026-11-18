@@ -782,7 +782,7 @@ fun VideoContent(
                     if (pip?.supported == true) {
                         GlassButton(Icons.Rounded.PictureInPictureAlt, I18n.t("picture_in_picture", "Picture-in-picture"), enabled, size = 32.dp, iconSize = 18.dp, backdrop = videoBackdrop) {
                             controlsVisible = false
-                            if (!pip.enter(state.videoAspect)) state.actionMessage = I18n.t("pip_disabled_message", "Picture-in-picture is turned off for LePlay in Settings.")
+                            if (!pip.enter(state.videoAspect)) state.actionMessage = I18n.t("pip_disabled_message", "Picture-in-picture is turned off for NeoTube in Settings.")
                         }
                         Spacer(Modifier.width(6.dp))
                     }

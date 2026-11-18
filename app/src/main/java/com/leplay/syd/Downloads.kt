@@ -161,7 +161,14 @@ object Downloads {
 
     fun defaultDownloadDir(): File {
         val pubDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        return File(pubDownloads, "LePlay Downloads")
+        val newDir = File(pubDownloads, "NeoTube Downloads")
+        val legacyDir = File(pubDownloads, "LePlay Downloads")
+        // Rename the old public folder once so downloads made before the
+        // NeoTube rebrand stay in the same place instead of disappearing.
+        if (legacyDir.exists() && legacyDir.isDirectory && !newDir.exists()) {
+            runCatching { legacyDir.renameTo(newDir) }
+        }
+        return newDir
     }
 
     fun init(context: Context) {

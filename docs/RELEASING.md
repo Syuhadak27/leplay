@@ -1,6 +1,6 @@
 # Push Kode dan Publikasi Rilis
 
-LePlay memakai GitHub Actions untuk build dan publish APK. Workflow-nya ada di
+NeoTube memakai GitHub Actions untuk build dan publish APK. Workflow-nya ada di
 [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
 ## Prasyarat
@@ -36,12 +36,12 @@ git push origin main
    - membaca `versionName` saat ini dari `app/build.gradle.kts`;
    - menaikkan versi patch dan menambah `versionCode`;
    - build `:app:assembleRelease`;
-   - commit perubahan versi sebagai `LePlay X.Y.Z [skip ci]`;
+   - commit perubahan versi sebagai `NeoTube X.Y.Z [skip ci]`;
    - membuat tag `vX.Y.Z` lewat GitHub Release API;
    - publish GitHub Release berisi `LePlay.apk`.
 
    Contoh: push dari `0.1.7` (`versionCode 144`) menghasilkan `0.1.8`
-   (`versionCode 145`), tag `v0.1.8`, dan release `LePlay 0.1.8`.
+   (`versionCode 145`), tag `v0.1.8`, dan release `NeoTube 0.1.8`.
 
 4. Pantau proses build:
 
@@ -112,7 +112,7 @@ git pull --ff-only origin main
 grep -nE 'versionCode|versionName' app/build.gradle.kts
 # Contoh: versionName = "0.1.8"
 
-git tag -a v0.1.8 -m "LePlay 0.1.8"
+git tag -a v0.1.8 -m "NeoTube 0.1.8"
 git push origin v0.1.8
 ```
 

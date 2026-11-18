@@ -1400,7 +1400,7 @@ private fun DownloadFolderSelectionDialog(
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Download/LePlay Downloads",
+                            text = "Download/NeoTube Downloads",
                             fontWeight = if (isDefault) FontWeight.SemiBold else FontWeight.Medium,
                             fontSize = 13.sp,
                             color = if (isDefault) c.primary else c.onSurface,
@@ -1436,7 +1436,7 @@ private fun DownloadFolderSelectionDialog(
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Music/LePlay",
+                            text = "Music/NeoTube",
                             fontWeight = if (isMusic) FontWeight.SemiBold else FontWeight.Medium,
                             fontSize = 13.sp,
                             color = if (isMusic) c.primary else c.onSurface,
@@ -1518,7 +1518,7 @@ private fun GeneralModificationContent(context: Context) {
             val path = if (docId.startsWith("primary:")) {
                 File(Environment.getExternalStorageDirectory(), docId.removePrefix("primary:"))
             } else {
-                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LePlay Downloads")
+                Downloads.defaultDownloadDir()
             }
             Downloads.setCustomDownloadDir(path)
         }
