@@ -11,8 +11,8 @@ android {
         applicationId = "com.leplay.syd"
         minSdk = 24
         targetSdk = 36
-        versionCode = 149
-        versionName = "0.1.12"
+        versionCode = 150
+        versionName = "0.1.15"
     }
 
     signingConfigs {
@@ -20,9 +20,9 @@ android {
             val keystoreFile = file("release.keystore")
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
-                keyAlias = System.getenv("KEY_ALIAS") ?: "androiddebugkey"
-                keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "12345678"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "appkey"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "12345678"
                 enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
