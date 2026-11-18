@@ -267,7 +267,7 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = Icons.Rounded.DataUsage,
                         title = I18n.t("storage_usage", "Storage Usage"),
-                        subtitle = I18n.t("storage_sub", "See phone storage & clear LePlay cache"),
+                        subtitle = I18n.t("storage_sub", "See phone storage & clear NeoTube cache"),
                         onClick = { activeFloatingSection = SettingsFloatingSection.STORAGE_USAGE },
                         padded = false,
                     )
@@ -278,7 +278,7 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = Icons.Rounded.Info,
                         title = I18n.t("version", "Version"),
-                        subtitle = "LePlay ${BuildConfig.VERSION_NAME}",
+                        subtitle = "NeoTube ${BuildConfig.VERSION_NAME}",
                         padded = false,
                         trailing = {
                             // The badge reflects the latest real check
@@ -449,7 +449,7 @@ fun SettingsScreen(
                 SettingsFloatingSection.STORAGE_USAGE -> {
                     SettingsFloatingDialog(
                         title = I18n.t("storage_usage", "Storage Usage"),
-                        subtitle = I18n.t("storage_sub", "Device memory & LePlay data"),
+                        subtitle = I18n.t("storage_sub", "Device memory & NeoTube data"),
                         onDismiss = { activeFloatingSection = null },
                     ) {
                         StorageUsageContent(context = context) {
@@ -892,7 +892,7 @@ private fun VersionHistoryContent() {
         Triple("0.1.4", "14 Nov 2026", "The Music player now opens and closes with staged motion: the album artwork grows into place while the header, title and controls settle in sequence, following the minimize and expand gesture instead of fading in flat all at once."),
         Triple("0.1.3", "14 Nov 2026", "The center playback buttons now appear 500ms after the other controls instead of a full second, matching the feel of the YouTube app while still never flashing during double-tap seek."),
         Triple("0.1.2", "13 Nov 2026", "Much faster loading everywhere: playback starts as soon as the stream is ready instead of waiting for the whole page, the Music and Shorts tabs keep their content between visits, Music shelves appear section by section, cover images download at the size they are shown, signed-out playback no longer rebuilds its security session for every video, resolved streams survive switching between WiFi and mobile data, and a stalled video now fails fast with a clear message instead of spinning."),
-        Triple("0.1.1", "12 Nov 2026", "Full LePlay Music home: complete shelves, filter chips, Quick Picks as a compact song grid, vertical song lists with durations, Moods and Genres, load more while scrolling. Live chat shows the viewer count, members-only state, member green names, moderator gear icon and channel emotes, and follows new messages with a small jump button. Comment and live chat panels start right below the video title. Channel row on the video page is more compact, subscriber counts are complete (for example 12 jt) and verified badges show. Links in descriptions and comments are tappable. The update checker retries through GitHub rate limits, the About version badge reflects the real check result, retry after a rejected stream resumes from the last position, About rows are uniform, and comment like errors are localized."),
+        Triple("0.1.1", "12 Nov 2026", "Full NeoTube Music home: complete shelves, filter chips, Quick Picks as a compact song grid, vertical song lists with durations, Moods and Genres, load more while scrolling. Live chat shows the viewer count, members-only state, member green names, moderator gear icon and channel emotes, and follows new messages with a small jump button. Comment and live chat panels start right below the video title. Channel row on the video page is more compact, subscriber counts are complete (for example 12 jt) and verified badges show. Links in descriptions and comments are tappable. The update checker retries through GitHub rate limits, the About version badge reflects the real check result, retry after a rejected stream resumes from the last position, About rows are uniform, and comment like errors are localized."),
         Triple("0.1.0", "9 Nov 2026", "The DANA number on the Support Developer page is corrected (0.0.9 showed a mistyped number); everyone on 0.0.9 is offered this update in the app. Features are the same as 0.0.9."),
         Triple("0.0.9", "9 Nov 2026", "Center player buttons fade in a second after the other controls while playing, so double-tap seek never flashes them; long titles show in full when the info block is open; MP3 downloads show their source bitrate; Latest search merges later pages without jumping back to the top; Liquid Glass off is now fully off everywhere."),
         Triple("0.0.8", "9 Nov 2026", "Unified history for videos, music and Shorts with filter chips, updater jumps straight to the latest release with the full changelog, sleep timer, vibration switch, fullscreen vertical mode, faster subtitle rendering and Latest search, Liquid Glass across every screen including Settings (off means no glass at all), stretch-to-fill zoom mode, instant tap controls with double-tap seek, brightness and volume edge gestures in portrait and fullscreen, faster and more reliable sign-in, Support Developer page."),
@@ -913,7 +913,7 @@ private fun VersionHistoryContent() {
                 Column(Modifier.padding(vertical = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "LePlay $version",
+                            "NeoTube $version",
                             fontFamily = RoundedHeavy, fontWeight = FontWeight.ExtraBold,
                             fontSize = 16.sp, color = c.onSurface,
                             modifier = Modifier.weight(1f),
@@ -964,7 +964,7 @@ private fun SupportDeveloperContent() {
     val context = LocalContext.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            I18n.t("support_body", "LePlay is free, with no ads. If it makes your day a little better, a voluntary coffee keeps development going. Thank you!"),
+            I18n.t("support_body", "NeoTube is free, with no ads. If it makes your day a little better, a voluntary coffee keeps development going. Thank you!"),
             fontSize = 13.5.sp, lineHeight = 19.sp,
             color = c.onSurface.copy(alpha = 0.92f),
         )
@@ -995,7 +995,7 @@ private fun SupportDeveloperContent() {
 private fun copyDonationNumber(context: Context, number: String) {
     runCatching {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("LePlay", number))
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("NeoTube", number))
         android.widget.Toast.makeText(context, I18n.t("copied", "Copied"), android.widget.Toast.LENGTH_SHORT).show()
     }
 }
@@ -1416,7 +1416,7 @@ private fun DownloadFolderSelectionDialog(
 
                 Spacer(Modifier.height(6.dp))
 
-                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "LePlay").absolutePath
+                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "NeoTube").absolutePath
                 val isMusic = currentPath == musicDir
                 Row(
                     modifier = Modifier
@@ -1737,7 +1737,7 @@ private fun GeneralModificationContent(context: Context) {
                 showFolderDialog = false
             },
             onSelectMusic = {
-                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "LePlay")
+                val musicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "NeoTube")
                 Downloads.setCustomDownloadDir(musicDir)
                 showFolderDialog = false
             },
@@ -1926,7 +1926,7 @@ private fun StorageUsageContent(context: Context, onCacheCleared: () -> Unit) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = I18n.t("used_by_leplay", "Used by LePlay"),
+                text = I18n.t("used_by_leplay", "Used by NeoTube"),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = c.onSurface,
@@ -2004,7 +2004,7 @@ private fun StorageUsageContent(context: Context, onCacheCleared: () -> Unit) {
                 }
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = clearedNotice ?: I18n.t("clear_cache_downloads", "Clear LePlay Cache & Downloads"),
+                    text = clearedNotice ?: I18n.t("clear_cache_downloads", "Clear NeoTube Cache & Downloads"),
                     color = Color(0xFFEF5350),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.5.sp,

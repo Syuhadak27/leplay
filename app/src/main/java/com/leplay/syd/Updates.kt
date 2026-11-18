@@ -106,7 +106,7 @@ suspend fun fetchReleaseHistory(): List<ReleaseEntry> = withContext(Dispatchers.
         val request = Request.Builder()
             .url("https://api.github.com/repos/Syuhadak27/leplay/releases?per_page=100")
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LePlay/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "NeoTube/${BuildConfig.VERSION_NAME}")
             .build()
         Net.client.newCall(request).execute().use { response ->
             val bodyText = response.body?.string().orEmpty()
@@ -142,10 +142,10 @@ suspend fun fetchReleaseHistory(): List<ReleaseEntry> = withContext(Dispatchers.
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: ReleaseHistoryException) {
-        Log.e("LePlayUpdates", "fetchReleaseHistory failed: ${e.detail}", e)
+        Log.e("NeoTubeUpdates", "fetchReleaseHistory failed: ${e.detail}", e)
         throw e
     } catch (e: Exception) {
-        Log.e("LePlayUpdates", "fetchReleaseHistory failed", e)
+        Log.e("NeoTubeUpdates", "fetchReleaseHistory failed", e)
         val detail = "${e.javaClass.simpleName}: ${e.message ?: "no message"}".take(120)
         throw ReleaseHistoryException(detail, e)
     }
@@ -157,9 +157,9 @@ suspend fun fetchReleaseHistory(): List<ReleaseEntry> = withContext(Dispatchers.
  */
 internal val RELEASE_NOTES = """
     • LePlay 0.1.6: the Home screen now shows a YouTube-style History shelf from your signed-in Google account, and updates are delivered from github.com/Syuhadak27/leplay.
-    • LePlay 0.1.5: Liquid Glass player morph, more reliable background playback, and downloads up to 4K HDR.
-    • LePlay 0.0.6 test-1: channel Live tab gets Latest / Popular / Oldest sort chips with full paging, and video rows now show the view count together with the upload time in every language.
-    • LePlay 0.0.5: Indonesian is now the default language with the full interface translated, video descriptions can be selected and copied, and viewer counts use Indonesian formatting (rb, jt, M).
+    • NeoTube 0.1.5: Liquid Glass player morph, more reliable background playback, and downloads up to 4K HDR.
+    • NeoTube 0.0.6 test-1: channel Live tab gets Latest / Popular / Oldest sort chips with full paging, and video rows now show the view count together with the upload time in every language.
+    • NeoTube 0.0.5: Indonesian is now the default language with the full interface translated, video descriptions can be selected and copied, and viewer counts use Indonesian formatting (rb, jt, M).
     • Ad-free YouTube and YouTube Music playback with a Liquid Glass UI.
     • Personalised Shorts feed, synced lyrics, and high-quality downloads up to 4K HDR.
     • Background playback, Picture-in-Picture, and Android TV mode.
@@ -263,7 +263,7 @@ class UpdateState(private val scope: CoroutineScope) {
     fun install(context: Context) {
         val file = downloaded ?: return
         if (Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) {
-            error = I18n.t("update_allow_installs", "Allow installs from LePlay, then tap Install again.")
+            error = I18n.t("update_allow_installs", "Allow installs from NeoTube, then tap Install again.")
             runCatching {
                 context.startActivity(
                     Intent(
@@ -312,7 +312,7 @@ class UpdateState(private val scope: CoroutineScope) {
         val request = Request.Builder()
             .url("https://api.github.com/repos/Syuhadak27/leplay/releases/latest")
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LePlay/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "NeoTube/${BuildConfig.VERSION_NAME}")
             .build()
         val executed = try {
             Net.client.newCall(request).execute()
@@ -386,7 +386,7 @@ class UpdateState(private val scope: CoroutineScope) {
         if (target.exists()) target.delete()
         val request = Request.Builder()
             .url(update.apkUrl)
-            .header("User-Agent", "LePlay/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "NeoTube/${BuildConfig.VERSION_NAME}")
             .build()
         Net.client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("HTTP ${response.code}")
@@ -522,7 +522,7 @@ fun UpdateOverlay(state: UpdateState, backdrop: Backdrop) {
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                "LePlay ${update?.version.orEmpty()}" +
+                                "NeoTube ${update?.version.orEmpty()}" +
                                     formatUpdateSize(update?.sizeBytes ?: 0L).let { if (it.isBlank()) "" else " · $it" },
                                 color = c.onSurfaceVariant,
                                 fontSize = 12.5.sp,
