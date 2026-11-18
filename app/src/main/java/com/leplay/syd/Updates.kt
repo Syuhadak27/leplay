@@ -156,7 +156,7 @@ suspend fun fetchReleaseHistory(): List<ReleaseEntry> = withContext(Dispatchers.
  * newer than the latest published release). Keep this in sync with the build.
  */
 internal val RELEASE_NOTES = """
-    • NeoTube 0.1.17: full NeoTube branding in the UI, and search suggestions plus recent searches now follow the signed-in YouTube account.
+    • NeoTube: full NeoTube branding in the UI, and search suggestions plus recent searches now follow the signed-in YouTube account.
     • NeoTube 0.1.6: the Home screen now shows a YouTube-style History shelf from your signed-in Google account, and updates are delivered from github.com/Syuhadak27/leplay.
     • NeoTube 0.1.5: Liquid Glass player morph, more reliable background playback, and downloads up to 4K HDR.
     • NeoTube 0.0.6 test-1: channel Live tab gets Latest / Popular / Oldest sort chips with full paging, and video rows now show the view count together with the upload time in every language.
